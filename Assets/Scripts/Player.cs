@@ -133,8 +133,26 @@ public class Player : MonoBehaviour
     public Transform meeleAttackPointLeft;
     public Transform meeleAttackPointRight;
     public float meeleAttackRange = 0.5f;
+    public float meleeAttackDamage = 20f;
+    public float meeleAttackHitStopTime = 0.5f;
+    public float meeleAttackHitStopTimeUponDeath = 2f;
+    
+    public float timeBetweenMeleeAttacks = 2f;
+    float nextMeleeAttackTime = 0f;
+
+    float meleeAttackBufferTimePassed;
+    public float meleeAttackBufferTime = 0.1f;
+
     public LayerMask enemyLayers;
     Collider2D[] meeleHitEnemies;
+
+
+
+    bool enemyUponDeath = false;
+
+
+
+    float jumpingBufferTimePassed = 0f;
 
 
 
@@ -150,6 +168,10 @@ public class Player : MonoBehaviour
 
 
         playerState = PlayerAnimationState.idle;
+
+
+
+        meleeAttackBufferTimePassed = meleeAttackBufferTime;
     }
 
 
@@ -409,9 +431,24 @@ public class Player : MonoBehaviour
 
     void PlayerCombatFunction()
     {
-        if (Input.GetKeyDown(KeyCode.J))
+        meleeAttackBufferTimePassed += Time.unscaledDeltaTime;
+
+
+
+        if (Time.unscaledTime >= nextMeleeAttackTime && meleeAttackBufferTimePassed < meleeAttackBufferTime && Time.timeScale != 0)
         {
             MeeleAttack();
+            nextMeleeAttackTime = Time.unscaledTime + timeBetweenMeleeAttacks;
+            meleeAttackBufferTimePassed = meleeAttackBufferTime;
+        }
+        else if (Input.GetKeyDown(KeyCode.J) && Time.unscaledTime >= nextMeleeAttackTime && Time.timeScale != 0)
+        {
+            MeeleAttack();
+            nextMeleeAttackTime = Time.unscaledTime + timeBetweenMeleeAttacks;
+        }
+        else if(Input.GetKeyDown(KeyCode.J))
+        {
+            meleeAttackBufferTimePassed = 0;
         }
     }
 
@@ -433,17 +470,14 @@ public class Player : MonoBehaviour
 
 
 
-
-
-        foreach(Collider2D enemy in meeleHitEnemies)
+        foreach (Collider2D enemy in meeleHitEnemies)
         {
-            Debug.Log("We hit " + enemy.name);
+            enemy.GetComponent<EnemyHealthScript>().enemyTakeDamageByPlayer(meleeAttackDamage);
         }
 
 
 
         //buffer for attack
-        //hitstop
     }
 
 
@@ -462,6 +496,32 @@ public class Player : MonoBehaviour
 
 
 
+    public void meleeAttackHitStop()
+    {
+        enemyUponDeath = false;
+
+        foreach (Collider2D enemy in meeleHitEnemies)
+        {
+            if(enemy.gameObject.layer == LayerMask.NameToLayer("DeadEnemies"))
+            {
+                enemyUponDeath = true;
+            }
+        }
+
+
+
+        if (meeleHitEnemies != null && meeleHitEnemies.Length > 0 && enemyUponDeath == true)
+        {
+            HitStop(meeleAttackHitStopTimeUponDeath);
+        }
+        else if (meeleHitEnemies != null && meeleHitEnemies.Length > 0)
+        {
+            HitStop(meeleAttackHitStopTime);
+        }
+    }
+
+
+
     public void EndSpecialAnimation()
     {
         playerState = PlayerAnimationState.idle;
@@ -471,6 +531,17 @@ public class Player : MonoBehaviour
 
     private void JumpingFunction()
     {
+        if (FixedUpdateJump || slidingDownSlopeSidewaysJump || FixedWallSlidingJump || fixedDoubleJump)
+        {
+            jumpingBufferTimePassed += Time.unscaledDeltaTime;
+        }
+        else
+        {
+            jumpingBufferTimePassed = 0f;
+        }
+
+
+
         NormalJump();
 
 
@@ -514,7 +585,7 @@ public class Player : MonoBehaviour
 
 
 
-        if (Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow))
+        if (Input.GetKey(KeyCode.LeftControl))
         {
             sFalling = true;
         }
@@ -707,7 +778,7 @@ public class Player : MonoBehaviour
 
 
 
-    void HitStop(float duration)
+    public void HitStop(float duration)
     {
         if (hitStopActivated)
         {
@@ -717,7 +788,7 @@ public class Player : MonoBehaviour
         {
             Time.timeScale = 0f;
             //AudioListener.pause = true;
-            //maybe away ability to do inputs while paused
+            //maybe take away ability to do inputs while paused - så inte inputs görs medan hitstopen är aktiverad
             StartCoroutine(HitStopTime(duration));
         }
     }
@@ -732,5 +803,6 @@ public class Player : MonoBehaviour
         //AudioListener.pause = false;
         hitStopActivated = false;
         //om du vill första fienden efter pausen eller göra något efter hitstopen är klar kan du göra det här eller kalla en annan funktion
+        //buffer inputs ksk???
     }
 }

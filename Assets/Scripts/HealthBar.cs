@@ -26,7 +26,7 @@ public class HealthBar : MonoBehaviour
 
     [SerializeField] Image healthFillImage;
     Color originalHealthColor;
-    [SerializeField] Color darkestHealthColor;
+    Color darkestHealthColor = new Color32(133, 0, 0, 255);
     float healthPercentage;
     Color currentColorOfHealth;
 

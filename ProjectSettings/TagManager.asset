@@ -20,9 +20,9 @@ TagManager:
   - 
   - 
   - Obstacle
-  - 
+  - ThroughObject
   - Enemies
-  - 
+  - DeadEnemies
   - 
   - 
   - 
